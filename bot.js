@@ -1,21 +1,35 @@
 const { Client, GatewayIntentBits, REST, Routes, Collection } = require('discord.js');
 const fs = require('fs');
-
-// Initialize the client with updated intents
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
-
-// Config
 const config = require('./config.json');
 
-// Initialize commands collection
+// Initialize the client
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages,GatewayIntentBits.GuildPresences, GatewayIntentBits.MessageContent] });
+
 client.commands = new Collection();
 
-// Load commands
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
-for (const file of commandFiles) {
-  const command = require(`./commands/${file}`);
-  client.commands.set(command.data.name, command);
+const path = require('path');
+
+// Load commands (with subfolders) and store category information
+function loadCommands(dir, parentDir = '') {
+  const files = fs.readdirSync(dir);
+  for (const file of files) {
+    const fullPath = path.join(dir, file);
+    if (fs.statSync(fullPath).isDirectory()) {
+      loadCommands(fullPath, path.join(parentDir, file));
+    } else if (file.endsWith('.js')) {
+      try {
+        // Construct the relative path from the base directory
+        const relativePath = path.relative(__dirname, fullPath).replace(/\\/g, '/');
+        const command = require(`./${relativePath}`);
+        command.category = parentDir || 'General'; // Assign category based on folder path
+        client.commands.set(command.data.name, command);
+      } catch (error) {
+        console.error(`Error loading command from file ${fullPath}:`, error);
+      }
+    }
+  }
 }
+loadCommands(path.join(__dirname, 'commands'));
 
 // Deploy commands
 const commands = [];
@@ -27,18 +41,12 @@ const rest = new REST({ version: '10' }).setToken(config.token);
 
 (async () => {
   try {
-    // Collect existing commands
     const existingCommands = await rest.get(Routes.applicationGuildCommands(config.clientId, config.guildId));
-
-    // Create a map for quick lookup
     const existingCommandsMap = new Map(existingCommands.map(cmd => [cmd.name, cmd.id]));
-
-    // Identify commands to delete
     const commandsToDelete = existingCommands.filter(existingCommand => 
       !commands.some(cmd => cmd.name === existingCommand.name)
     );
 
-    // Delete old commands
     for (const commandToDelete of commandsToDelete) {
       try {
         await rest.delete(Routes.applicationGuildCommand(config.clientId, config.guildId, commandToDelete.id));
@@ -48,7 +56,6 @@ const rest = new REST({ version: '10' }).setToken(config.token);
       }
     }
 
-    // Register new commands
     await rest.put(Routes.applicationGuildCommands(config.clientId, config.guildId), { body: commands });
     console.log('Successfully registered application commands.');
   } catch (error) {
@@ -75,15 +82,18 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
-// Event handlers
-const eventFiles = fs.readdirSync('./events').filter(file => file.endsWith('.js'));
+// Load events from the 'events' directory
+const eventsPath = path.join(__dirname, 'events');
+const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+
 for (const file of eventFiles) {
-  const event = require(`./events/${file}`);
-  if (event.once) {
-    client.once(event.name, (...args) => event.execute(...args));
-  } else {
-    client.on(event.name, (...args) => event.execute(...args));
-  }
+    const filePath = path.join(eventsPath, file);
+    const event = require(filePath);
+    if (event.once) {
+        client.once(event.name, (...args) => event.execute(...args, client));
+    } else {
+        client.on(event.name, (...args) => event.execute(...args, client));
+    }
 }
 
 // Login to Discord
