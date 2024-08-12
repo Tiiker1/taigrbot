@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { EmbedBuilder } = require('discord.js');
+const path = require('path');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -11,16 +12,31 @@ module.exports = {
 
     // Create an embed for the command list
     const embed = new EmbedBuilder()
-      .setTitle('Available Commands')
+      .setTitle('📜 Available Commands')
       .setDescription('Here is a list of all available commands:')
-      .setColor('#00FF00'); // You can customize the color
+      .setColor('#0099ff') // Customize the color
+      .setThumbnail('https://example.com/your-thumbnail.png') // Optional: add a thumbnail
+      .setFooter({ text: 'Bot by YourName', iconURL: 'https://example.com/your-bot-icon.png' }); // Optional: add footer
 
-    // Loop through each command and add it to the embed
+    // Group commands by category
+    const commandCategories = new Map();
+
     commands.forEach(command => {
+      const category = command.category || 'General'; // Default to 'General' if no category
+      if (!commandCategories.has(category)) {
+        commandCategories.set(category, []);
+      }
+      commandCategories.get(category).push(command);
+    });
+
+    // Add fields to the embed
+    commandCategories.forEach((commands, category) => {
+      let fieldValue = commands.map(cmd => `**/${cmd.data.name}**: ${cmd.data.description || 'No description provided'}`).join('\n');
+      
       embed.addFields({
-        name: `/${command.data.name}`, // Command name
-        value: command.data.description || 'No description provided', // Command description
-        inline: true // Inline field
+        name: `📁 ${category}`,
+        value: fieldValue,
+        inline: false // Avoid using inline for long descriptions
       });
     });
 
