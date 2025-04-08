@@ -4,26 +4,7 @@ const path = require('path');
 const scamLogFilePath = path.join(__dirname, '..', 'scam_log.json');
 let scamLogs = fs.existsSync(scamLogFilePath) ? require(scamLogFilePath) : [];
 
-const warningMap = new Map(); // Key: guildId-userId, Value: warning count
-
-const scamPhrases = [
-  /free\s*(n|n1|nitro|n!tro)/i,
-  /discord\s*(giveaway|event)/i,
-  /claim\s*(your\s*)?(reward|gift|prize)/i,
-  /congratulations.*(you\s*won|selected)/i,
-  /limited\s*time\s*offer/i,
-  /send\s*me\s*(a\s*)?steam\s*(gift\s*)?card/i,
-  /buy\s*(a\s*)?steam\s*(wallet\s*)?(code|key)/i,
-  /redeem\s*steam\s*gift\s*card/i,
-  /free\s*(steam\s*)?(items|skins|games)/i,
-  /i\s*(accidentally\s*)?reported\s*you\s*(on\s*)?(steam|discord)/i,
-  /send\s*me\s*your\s*trade\s*link/i,
-  /trade\s*link.*https?:\/\//i,
-  /i\s*can\s*duplicate\s*your\s*(items|skins)/i,
-  /verify\s*your\s*(account|identity)/i,
-  /(steam|discord).*\s*staff.*(contact|message|ban)/i,
-  /this\s*is\s*not\s*a\s*scam/i
-];
+const warningMap = new Map(); // Tracks per-user warning count
 
 const scamUrls = [
   /(https?:\/\/)?(www\.)?[\w\-]+(\.xyz|\.top|\.gq|\.win|\.click|\.lol|\.gift|\.zip|\.monster|\.icu|\.link|\.ru|\.tk)(\/\S*)?/i,
@@ -51,15 +32,8 @@ module.exports = {
     if (message.author.bot || !message.guild) return;
 
     const content = message.content.toLowerCase();
-    const scamDetected = scamPhrases.some(pattern => pattern.test(content));
     const urlDetected = scamUrls.some(pattern => pattern.test(content));
-    const dangerousExtensions = ['.cmd'];
-    const suspiciousAttachment = [...message.attachments.values()].some(att => {
-      const ext = path.extname(att.name).toLowerCase();
-      return dangerousExtensions.includes(ext);
-    });
-    
-    if (!(scamDetected || urlDetected || suspiciousAttachment)) return;
+    if (!urlDetected) return;
 
     await message.delete().catch(() => {});
 
@@ -70,39 +44,31 @@ module.exports = {
     const newWarnings = currentWarnings + 1;
     warningMap.set(key, newWarnings);
 
-    // Log the scam attempt
-    let reason = 'Scam content detected';
-    if (urlDetected) reason = 'Suspicious URL';
-    if (hasAttachments) reason = 'Suspicious attachment';
-    logScam(guildId, userId, message.content, reason);
+    logScam(guildId, userId, message.content, 'Suspicious URL');
 
-    // Send DM warning
-    const dmWarning = [
-      "⚠️ **Potential Scam Detected**",
-      "",
-      "Your message in **" + message.guild.name + "** was removed because it contained scam-like content.",
-      `This is warning **#${newWarnings}**.`,
-      "",
-      "If this was a mistake, contact the server moderators.",
-      "",
-      "🔐 Avoid suspicious links and never share personal details online."
-    ].join('\n');
+    // DM warning
+    await message.author.send({
+      content: [
+        "⚠️ **Scam Link Detected**",
+        "",
+        `Your message in **${message.guild.name}** was removed for containing a potentially harmful or fake link.`,
+        `This is warning **#${newWarnings}**.`,
+        "",
+        "Contact a server admin or moderator if this was a mistake. Stay safe online! 🔐"
+      ].join('\n')
+    }).catch(() => {});
 
-    await message.author.send({ content: dmWarning }).catch(() => {});
-
-    // Warn in server
+    // Warn in channel
     await message.channel.send({
-      content: `⚠️ <@${userId}>, your message was removed for containing potential scam content. This is warning **#${newWarnings}**.`
+      content: `⚠️ <@${userId}>, your message was removed for containing a suspicious link. Warning **#${newWarnings}**.`
     });
 
     // Kick on 2nd offense
     if (newWarnings >= 2) {
       const member = message.guild.members.cache.get(userId);
       if (member && member.kickable) {
-        await member.kick('Attempted to send scam links to the server.');
-        await message.channel.send(`🚫 <@${userId}> was kicked for repeated scam attempts.`);
-      } else {
-        await message.channel.send(`🚫 <@${userId}> exceeded scam warning limit but could not be kicked.`);
+        await member.kick('Repeated attempt to send scam links.');
+        await message.channel.send(`🚫 <@${userId}> was kicked for sending scam links repeatedly.`);
       }
     }
   }
