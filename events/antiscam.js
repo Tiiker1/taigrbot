@@ -49,12 +49,13 @@ module.exports = {
     // DM warning
     await message.author.send({
       content: [
-        "⚠️ **Scam Link Detected**",
+        "**Scam Link Detected**",
         "",
         `Your message in **${message.guild.name}** was removed for containing a potentially harmful or fake link.`,
         `This is warning **#${newWarnings}**.`,
         "",
-        "Contact a server admin or moderator if this was a mistake. Stay safe online! 🔐"
+        "Contact a server admin or moderator if this was a mistake. Stay safe online!",
+        "For now also contact or advise server admins/mods to contact tiiker1 if you have problem with bot"
       ].join('\n')
     }).catch(() => {});
 
