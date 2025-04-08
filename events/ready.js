@@ -5,6 +5,7 @@ module.exports = {
 
     execute(client) {
         console.log(`Logged in as ${client.user.tag}!`);
+        await client.application.commands.set(commands);
 
         try {
             client.user.setPresence({
