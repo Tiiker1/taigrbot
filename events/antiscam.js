@@ -4,7 +4,7 @@ const path = require('path');
 const scamLogFilePath = path.join(__dirname, '..', 'scam_log.json');
 let scamLogs = fs.existsSync(scamLogFilePath) ? require(scamLogFilePath) : [];
 
-const warningMap = new Map(); // Tracks per-user warning count
+const warningMap = new Map();
 
 const scamUrls = [
   /(https?:\/\/)?(www\.)?[\w\-]+(\.xyz|\.top|\.gq|\.win|\.click|\.lol|\.gift|\.zip|\.monster|\.icu|\.link|\.ru|\.tk)(\/\S*)?/i,
@@ -46,30 +46,28 @@ module.exports = {
 
     logScam(guildId, userId, message.content, 'Suspicious URL');
 
-    // DM warning
     await message.author.send({
       content: [
         "**Scam Link Detected**",
         "",
-        `Your message in **${message.guild.name}** was removed for containing a potentially harmful or fake link.`,
+        `Your message in **${message.guild.name}** was removed because it contained a suspicious link.`,
         `This is warning **#${newWarnings}**.`,
         "",
-        "Contact a server admin or moderator if this was a mistake. Stay safe online!",
+        "If you believe this was a mistake, please reach out to a server admin or moderator.",
+        "Remember to stay safe and avoid clicking suspicious links!",
         "For now also contact or advise server admins/mods to contact tiiker1 if you have problem with bot"
       ].join('\n')
     }).catch(() => {});
 
-    // Warn in channel
     await message.channel.send({
-      content: `⚠️ <@${userId}>, your message was removed for containing a suspicious link. Warning **#${newWarnings}**.`
+      content: `⚠️ <@${userId}>, your message was removed because it contained a suspicious link. Warning **#${newWarnings}**.`
     });
 
-    // Kick on 2nd offense
     if (newWarnings >= 2) {
       const member = message.guild.members.cache.get(userId);
       if (member && member.kickable) {
         await member.kick('Repeated attempt to send scam links.');
-        await message.channel.send(`🚫 <@${userId}> was kicked for sending scam links repeatedly.`);
+        await message.channel.send(`🚫 <@${userId}> has been kicked for repeatedly attempting to send scam links.`);
       }
     }
   }
