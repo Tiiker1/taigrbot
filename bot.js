@@ -66,7 +66,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 (async () => {
   try {
     // Get all commands that are currently registered on Discord
-    const existingCommands = await rest.get(Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID));
+    const existingCommands = await rest.get(Routes.applicationCommands(process.env.CLIENT_ID, process.env.GUILD_ID));
     
     // Map the existing commands by their names so we can easily find them
     const existingCommandsMap = new Map(existingCommands.map(cmd => [cmd.name, cmd.id]));
@@ -79,7 +79,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
     // Loop through commands that need to be deleted
     for (const commandToDelete of commandsToDelete) {
       try {
-        await rest.delete(Routes.applicationGuildCommand(process.env.CLIENT_ID, process.env.GUILD_ID, commandToDelete.id));
+        await rest.delete(Routes.applicationCommand(process.env.CLIENT_ID, process.env.GUILD_ID, commandToDelete.id));
         console.log(`Deleted old command: ${commandToDelete.name}`);
       } catch (error) {
         console.error(`Error deleting command ${commandToDelete.name}:`, error);
@@ -87,7 +87,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
     }
 
     // Register the new commands with Discord
-    await rest.put(Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID), { body: commands });
+    await rest.put(Routes.applicationCommands(process.env.CLIENT_ID, process.env.GUILD_ID), { body: commands });
     console.log('Successfully registered application commands.');
   } catch (error) {
     console.error('Error deploying commands:', error);
