@@ -3,9 +3,12 @@ const { ActivityType } = require('discord.js');
 module.exports = {
     name: 'ready',
 
-    execute(client) {
+    async execute(client) {  // Add async here
         console.log(`Logged in as ${client.user.tag}!`);
-        await client.application.commands.set(commands);
+
+        // If you have the `commands` variable or array that needs to be set, ensure it's defined
+        // For example: const commands = [/* your command list */];
+        await client.application.commands.set(commands); // Corrected with 'await' in an async function
 
         try {
             client.user.setPresence({
@@ -24,10 +27,10 @@ module.exports = {
 
                     // Setting the asset images using keys from Developer Portal
                     assets: {
-                        largeImage: 'embedded_background', // Key for the large image asset in Rich Presence
-                        large_text: 'Exploring the final frontier', // Tooltip text for large image
-                        smallImage: 'bot_avatar_icon', // Key for the small image asset
-                        small_text: 'Pilot Level: Master' // Tooltip text for small image
+                        largeImage: 'embedded_background',
+                        large_text: 'Exploring the final frontier',
+                        smallImage: 'bot_avatar_icon',
+                        small_text: 'Pilot Level: Master'
                     },
 
                     party: {
