@@ -1,100 +1,138 @@
+// Load environment variables from the .env file
+require('dotenv').config();
+
+// Discord.js imports, plus some other helpful stuff
 const { Client, GatewayIntentBits, REST, Routes, Collection } = require('discord.js');
 const fs = require('fs');
-const config = require('./config.json');
-
-// Initialize the client
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages,GatewayIntentBits.GuildPresences, GatewayIntentBits.MessageContent] });
-
-client.commands = new Collection();
-
 const path = require('path');
 
-// Load commands (with subfolders) and store category information
+// Initialize the Discord bot client with the right permissions
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds, // Allows access to guild info
+    GatewayIntentBits.GuildMessages, // To read messages in guilds
+    GatewayIntentBits.GuildPresences, // To track when users come and go
+    GatewayIntentBits.MessageContent, // So we can read the content of messages
+  ]
+});
+
+// Create a new collection to store our commands in
+client.commands = new Collection();
+
+// This function is responsible for loading commands from folders, including subfolders
 function loadCommands(dir, parentDir = '') {
+  // Read everything in the directory
   const files = fs.readdirSync(dir);
-  for (const file of files) {
-    const fullPath = path.join(dir, file);
+
+  // Loop through each file in the directory
+  files.forEach(file => {
+    const fullPath = path.join(dir, file); // Get the full path to the file
+
     if (fs.statSync(fullPath).isDirectory()) {
+      // If it's a directory, call the function again to load commands inside it
       loadCommands(fullPath, path.join(parentDir, file));
     } else if (file.endsWith('.js')) {
+      // If it's a JavaScript file, load it as a command
       try {
-        // Construct the relative path from the base directory
+        // Generate the relative path to load the command
         const relativePath = path.relative(__dirname, fullPath).replace(/\\/g, '/');
         const command = require(`./${relativePath}`);
-        command.category = parentDir || 'General'; // Assign category based on folder path
+
+        // Assign a category based on the folder it's in (or 'General' if no folder)
+        command.category = parentDir || 'General';
+
+        // Add the command to the collection, using its name as the key
         client.commands.set(command.data.name, command);
       } catch (error) {
-        console.error(`Error loading command from file ${fullPath}:`, error);
+        console.error(`Could not load command from ${fullPath}:`, error);
       }
     }
-  }
+  });
 }
+
+// Load commands from the 'commands' directory (including subfolders)
 loadCommands(path.join(__dirname, 'commands'));
 
-// Deploy commands
+// Prepare the commands array to send to Discord
 const commands = [];
-for (const command of client.commands.values()) {
+client.commands.forEach(command => {
   commands.push(command.data.toJSON());
-}
+});
 
-const rest = new REST({ version: '10' }).setToken(config.token);
+// Set up the REST client for making API requests to Discord
+const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
+// This part registers (or re-registers) the bot's commands with Discord
 (async () => {
   try {
-    const existingCommands = await rest.get(Routes.applicationGuildCommands(config.clientId, config.guildId));
+    // Get all commands that are currently registered on Discord
+    const existingCommands = await rest.get(Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID));
+    
+    // Map the existing commands by their names so we can easily find them
     const existingCommandsMap = new Map(existingCommands.map(cmd => [cmd.name, cmd.id]));
-    const commandsToDelete = existingCommands.filter(existingCommand => 
+
+    // Find commands that exist in Discord but aren't in the new list, so we can delete them
+    const commandsToDelete = existingCommands.filter(existingCommand =>
       !commands.some(cmd => cmd.name === existingCommand.name)
     );
 
+    // Loop through commands that need to be deleted
     for (const commandToDelete of commandsToDelete) {
       try {
-        await rest.delete(Routes.applicationGuildCommand(config.clientId, config.guildId, commandToDelete.id));
+        await rest.delete(Routes.applicationGuildCommand(process.env.CLIENT_ID, process.env.GUILD_ID, commandToDelete.id));
         console.log(`Deleted old command: ${commandToDelete.name}`);
       } catch (error) {
         console.error(`Error deleting command ${commandToDelete.name}:`, error);
       }
     }
 
-    await rest.put(Routes.applicationGuildCommands(config.clientId, config.guildId), { body: commands });
+    // Register the new commands with Discord
+    await rest.put(Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID), { body: commands });
     console.log('Successfully registered application commands.');
   } catch (error) {
     console.error('Error deploying commands:', error);
   }
 })();
 
-// Handle interactions
+// Listen for interactions like slash commands
 client.on('interactionCreate', async interaction => {
-  if (!interaction.isCommand()) return;
+  if (!interaction.isCommand()) return; // Ignore anything that's not a command
 
+  // Check if the command exists in our collection
   const command = client.commands.get(interaction.commandName);
 
   if (!command) {
-    console.error(`No command matching ${interaction.commandName} was found.`);
+    console.error(`No command found with the name ${interaction.commandName}`);
     return;
   }
 
   try {
+    // Try executing the command
     await command.execute(interaction);
   } catch (error) {
-    console.error(`Error executing ${interaction.commandName} command:`, error);
-    await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+    // If something goes wrong, log the error and reply to the user
+    console.error(`Error executing ${interaction.commandName}:`, error);
+    await interaction.reply({ content: 'Whoops, something went wrong!', ephemeral: true });
   }
 });
 
-// Load events from the 'events' directory
+// Now, let's load all the event listeners from the 'events' folder
 const eventsPath = path.join(__dirname, 'events');
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 
-for (const file of eventFiles) {
-    const filePath = path.join(eventsPath, file);
-    const event = require(filePath);
-    if (event.once) {
-        client.once(event.name, (...args) => event.execute(...args, client));
-    } else {
-        client.on(event.name, (...args) => event.execute(...args, client));
-    }
-}
+// Register each event handler
+eventFiles.forEach(file => {
+  const filePath = path.join(eventsPath, file);
+  const event = require(filePath);
+  
+  if (event.once) {
+    // If the event is supposed to only fire once, we use `once()`
+    client.once(event.name, (...args) => event.execute(...args, client));
+  } else {
+    // For regular events, we use `on()`
+    client.on(event.name, (...args) => event.execute(...args, client));
+  }
+});
 
-// Login to Discord
-client.login(config.token);
+// Log in with the token from the .env file
+client.login(process.env.DISCORD_TOKEN);
