@@ -51,13 +51,17 @@ module.exports = {
 
     if (scamDetected || urlDetected || hasAttachments) {
       message.delete().catch(() => {});
-     message.author.send({
-        content: `⚠️ **Potential Scam Detected**
-          Your recent message was flagged and removed because it appeared to contain a link or text associated with common scams (e.g., fake giveaways, Nitro, Steam scams, phishing attempts, etc.).
-          If this was a mistake and your message was legitimate, feel free to contact a server moderator or admin for clarification.
-          Please stay cautious online and never click on suspicious links or share personal info with strangers.`
-      });
-
+        message.author.send({
+          content: [
+            "⚠️ **Potential Scam Detected**",
+            "",
+            "Your recent message was automatically removed because it contained content often associated with scams — such as fake giveaways, Discord Nitro, Steam gift cards, or phishing links.",
+            "",
+            "If this was a mistake and your message was legitimate, please reach out to a server moderator or admin.",
+            "",
+            "🔐 Stay safe online. Avoid clicking suspicious links and never share personal or account information with strangers."
+          ].join('\n')
+        });
       let reason = 'Scam detected via message content';
       if (urlDetected) reason = 'Suspicious URL detected';
       if (hasAttachments) reason = 'Suspicious attachments detected';
