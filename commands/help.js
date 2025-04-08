@@ -16,7 +16,7 @@ module.exports = {
       .setDescription('Here is a list of all available commands:')
       .setColor('#0099ff') // Customize the color
       .setThumbnail('https://example.com/your-thumbnail.png') // Optional: add a thumbnail
-      .setFooter({ text: 'Bot by YourName', iconURL: 'https://example.com/your-bot-icon.png' }); // Optional: add footer
+      .setFooter({ text: 'taigrbot', iconURL: 'https://example.com/your-bot-icon.png' }); // Optional: add footer
 
     // Group commands by category
     const commandCategories = new Map();
