@@ -11,7 +11,7 @@ module.exports = {
                 status: 'online',
                 afk: false,
                 activities: [{
-                    name: 'tiiker1 NPC',
+                    name: 'tiiker1´s puppet',
                     type: ActivityType.Playing,
                     details: 'Voyaging through the digital cosmos',
                     state: 'coding taigrbot',
