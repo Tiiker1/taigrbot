@@ -11,10 +11,10 @@ module.exports = {
                 status: 'online',
                 afk: false,
                 activities: [{
-                    name: 'Galactic Exploration',
+                    name: 'tiiker1 NPC',
                     type: ActivityType.Playing,
                     details: 'Voyaging through the digital cosmos',
-                    state: 'Discovering new worlds',
+                    state: 'coding taigrbot',
                     
                     timestamps: {
                         start: new Date(),
