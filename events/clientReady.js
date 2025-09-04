@@ -1,48 +1,44 @@
 const { ActivityType } = require('discord.js');
 
 module.exports = {
-    name: 'ready',
+  name: 'clientReady',
 
-    execute(client) {
-        console.log(`Logged in as ${client.user.tag}!`);
+  execute(client) {
+    console.log(`✅ Logged in as ${client.user.tag}!`);
 
-        try {
-            client.user.setPresence({
-                status: 'online',
-                afk: false,
-                activities: [{
-                    name: 'tiiker1´s puppet',
-                    type: ActivityType.Playing,
-                    details: 'Voyaging through the digital cosmos',
-                    state: 'coding taigrbot',
-                    
-                    timestamps: {
-                        start: new Date(),
-                        end: new Date(Date.now() + (60 * 60 * 1000)) // Ends in one hour
-                    },
+    try {
+      // Activity rotation pool
+      const activities = [
+        () => ({ name: 'tiiker1', type: ActivityType.Playing }),
+        () => ({ name: 'your commands ✨', type: ActivityType.Listening }),
+        () => ({ name: `${client.guilds.cache.size} servers 🌍`, type: ActivityType.Watching }),
+        () => ({ name: `${client.users.cache.size} users 💡`, type: ActivityType.Watching }),
+        () => ({ name: 'coding taigrbot 🚀', type: ActivityType.Competing }),
+      ];
 
-                    // Setting the asset images using keys from Developer Portal
-                    assets: {
-                        largeImage: 'embedded_background', // Key for the large image asset in Rich Presence
-                        large_text: 'Exploring the final frontier', // Tooltip text for large image
-                        smallImage: 'bot_avatar_icon', // Key for the small image asset
-                        small_text: 'Pilot Level: Master' // Tooltip text for small image
-                    },
+      const INTERVAL = 30_000; // 30s
 
-                    party: {
-                        id: 'unique-party-id',
-                        size: [3, 5]
-                    },
+      const setRandomActivity = () => {
+        if (!activities.length) return;
 
-                    secrets: {
-                        join: 'unique-join-code'
-                    }
-                }]
-            });
+        const activity = activities[Math.floor(Math.random() * activities.length)]();
+        client.user.setPresence({
+          status: 'online',
+          activities: [activity],
+        });
 
-            console.log('Presence set successfully with images!');
-        } catch (error) {
-            console.error('Error setting presence:', error);
-        }
-    },
+        console.log(`🌟 Presence updated → ${activity.type} ${activity.name}`);
+      };
+
+      // Set immediately on startup
+      setRandomActivity();
+
+      // Rotate at interval
+      setInterval(setRandomActivity, INTERVAL);
+
+      console.log(`🔄 Presence rotation started (every ${INTERVAL / 1000}s).`);
+    } catch (error) {
+      console.error('❌ Error setting presence:', error);
+    }
+  },
 };
