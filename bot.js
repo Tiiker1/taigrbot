@@ -18,7 +18,7 @@ loadCommands(client);
 loadEvents(client);
 
 client.once('ready', () => {
-  console.log(`🤖 Logged in as ${client.user.tag}`);
+  console.log(`🤖 Logged in as ${client.user.username}`);
   deployCommands(client);
 });
 

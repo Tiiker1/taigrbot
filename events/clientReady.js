@@ -1,13 +1,13 @@
 const { ActivityType } = require('discord.js');
 
 module.exports = {
-  name: 'clientReady',
+  name: 'ready',
+  once: true,
 
   execute(client) {
-    console.log(`✅ Logged in as ${client.user.tag}!`);
+    console.log(`✅ Logged in as ${client.user.username}!`);
 
     try {
-      // Activity rotation pool
       const activities = [
         () => ({ name: 'tiiker1', type: ActivityType.Playing }),
         () => ({ name: 'your commands ✨', type: ActivityType.Listening }),
@@ -16,7 +16,7 @@ module.exports = {
         () => ({ name: 'coding taigrbot 🚀', type: ActivityType.Competing }),
       ];
 
-      const INTERVAL = 30_000; // 30s
+      const INTERVAL = 30_000;
 
       const setRandomActivity = () => {
         if (!activities.length) return;
@@ -30,10 +30,7 @@ module.exports = {
         console.log(`🌟 Presence updated → ${activity.type} ${activity.name}`);
       };
 
-      // Set immediately on startup
       setRandomActivity();
-
-      // Rotate at interval
       setInterval(setRandomActivity, INTERVAL);
 
       console.log(`🔄 Presence rotation started (every ${INTERVAL / 1000}s).`);

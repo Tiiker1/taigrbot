@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
+const { SlashCommandBuilder } = require('discord.js');
 const axios = require('axios');
 
 const QUOTE_API_URL = 'https://api.quotable.io/random';

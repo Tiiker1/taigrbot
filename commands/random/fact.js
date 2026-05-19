@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
+const { SlashCommandBuilder } = require('discord.js');
 const axios = require('axios'); // Ensure you have this installed
 
 const API_URL = 'https://uselessfacts.jsph.pl/random.json?language=en';

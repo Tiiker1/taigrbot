@@ -13,10 +13,7 @@ module.exports = {
     const steamId = interaction.options.getString('steamid');
     const apiKey = 'YOUR_STEAM_API_KEY'; // Replace with your Steam API key
 
-    const fetch = (await import('node-fetch')).default;
-
     try {
-      // Fetch owned games for the user
       const gamesResponse = await fetch(`http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=${apiKey}&steamid=${steamId}&include_played_free_games=1&include_appinfo=1`);
 
       if (!gamesResponse.ok) {

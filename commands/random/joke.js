@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
+const { SlashCommandBuilder } = require('discord.js');
 const axios = require('axios');
 
 const JOKE_API_URL = 'https://official-joke-api.appspot.com/random_joke';
